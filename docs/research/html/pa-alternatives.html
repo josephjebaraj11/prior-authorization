@@ -21,6 +21,15 @@
   th,td{border:1px solid var(--line); padding:.5rem .6rem; text-align:left; vertical-align:top;}
   th{background:rgba(52,87,213,.08); font-weight:600;}
   .diagram-note{font-size:.8rem; color:var(--muted); margin-top:.5rem;}
+  .matrix{border-collapse:collapse; width:100%; font-size:.85rem; margin-top:.75rem; table-layout:fixed;}
+  .matrix th,.matrix td{border:1px solid var(--line); padding:.7rem; vertical-align:top;}
+  .matrix thead th{background:rgba(52,87,213,.08); text-align:center;}
+  .matrix .rowhead{background:rgba(52,87,213,.04); font-weight:600; width:9rem;}
+  .matrix ul{margin:0; padding-left:1.1rem;}
+  .matrix li{margin:.2rem 0;}
+  .matrix .empty{color:var(--muted); font-style:italic;}
+  .matrix .keycell{background:rgba(180,83,9,.1);}
+  .corner{background:transparent !important; border:none !important;}
   a{color:var(--accent);}
   .callout{border-left:4px solid var(--accent); padding:.6rem 1rem; background:rgba(52,87,213,.06); border-radius:0 8px 8px 0; font-weight:500;}
   nav.crumbs{max-width:960px; margin:1rem auto 0; padding:0 1.5rem; font-size:.85rem;}
@@ -41,54 +50,76 @@
 <section>
   <h2>1. Decision tree: does this approach eliminate PA?</h2>
   <div class="mermaid">
-flowchart TD
-  Start{"Does the approach remove<br/>the payer's need/ability<br/>to review each request?"}
-  Start -- "No — just faster/earlier visibility" --> RTPB["Real-time benefit checks (RTPB)<br/>surfaces PA requirement before Rx sent"]
-  Start -- "No — same rule, digitized" --> CMS["CMS-0057-F<br/>FHIR APIs, faster deadlines"]
-  Start -- "No — narrow, revocable exemption" --> GOLD["Gold-carding<br/>~3% of TX providers qualify"]
-  Start -- "No — voluntary, code-specific" --> PLEDGE["Insurer pledges<br/>cut specific procedure codes"]
-  Start -- "Yes — removes payer's incentive" --> VBC["Value-based / risk-sharing care<br/>provider bears cost risk instead"]
+flowchart LR
+  VBC[Value-based /<br/>risk-sharing care] -->|provider bears<br/>the cost risk| KEEP[Payer no longer<br/>needs to review]
+  GOLD[Gold-carding] -->|trusted providers<br/>exempted| PARTIAL[PA still exists,<br/>fewer people face it]
+  PLEDGE[Insurer pledges] -->|named codes<br/>dropped| PARTIAL
+  CMS[CMS-0057-F] -->|same rules,<br/>now electronic| SAME[PA unchanged,<br/>just faster]
+  RTPB[Real-time<br/>benefit checks] -->|you learn<br/>about it sooner| SAME
 
-  RTPB --> R1[Verdict: Speeds up / routes around]
-  CMS --> R2[Verdict: Digitizes, doesn't reduce scope]
-  GOLD --> R3[Verdict: Reduces for a small trusted cohort]
-  PLEDGE --> R4[Verdict: Eliminates for named codes only]
-  VBC --> R5[Verdict: Closest to true elimination —<br/>but only within contract's scope]
+  KEEP --> WIN[True alternative]
+  PARTIAL --> NARROW[Narrows PA]
+  SAME --> SPEED[Speeds up PA]
 
   style VBC fill:#0f766e25,stroke:#0f766e,stroke-width:2px
-  style R5 fill:#0f766e25,stroke:#0f766e
+  style KEEP fill:#0f766e25,stroke:#0f766e
+  style WIN fill:#0f766e25,stroke:#0f766e,stroke-width:2px
 </div>
+  <div class="diagram-note">Read each row left to right: the approach, how it works, and what it actually achieves. Only the top row reaches "true alternative" — and even then, only inside the contract's scope.</div>
 </section>
 
 <section>
   <h2>2. CMS-0057-F compliance timeline</h2>
   <div class="mermaid">
 timeline
-  title CMS Interoperability &amp; Prior Authorization Final Rule
-  2024 : Rule finalized (January)
-  2026 : 72-hr urgent / 7-day standard decision timeframes begin : Denial-reason transparency required : Public PA metric reporting starts : Insurer pledge code-reductions target (Jan 1)
-  2027 : Patient Access API expanded (Jan 1) : Provider Access API required : Payer-to-Payer API required : Prior Authorization API (Da Vinci PAS) required : Hospitals must attest to real API usage
+  title CMS-0057-F compliance timeline
+  2024 : Rule finalized
+  2026 : Decision timeframes begin
+       : Denial-reason transparency required
+       : Public PA reporting starts
+  2027 : Patient Access API required
+       : Provider Access API required
+       : Payer-to-Payer API required
+       : Prior Authorization API required
 </div>
 </section>
 
 <section>
   <h2>3. Coverage of each approach — how much of US care does it touch?</h2>
-  <div class="mermaid">
-quadrantChart
-  title Reach vs how much it actually reduces PA
-  x-axis "Narrow reach" --> "Broad reach"
-  y-axis "Speeds up only" --> "Structurally reduces or eliminates"
-  quadrant-1 "Broad structural change - rare"
-  quadrant-2 "Narrow but structural"
-  quadrant-3 "Narrow - procedural only"
-  quadrant-4 "Broad - procedural only"
-  "Gold-carding - 6 states": [0.15, 0.55]
-  "Value-based / risk-sharing": [0.3, 0.9]
-  "Real-time benefit checks": [0.75, 0.25]
-  "CMS-0057-F federal mandate": [0.9, 0.2]
-  "Insurer pledges 2025": [0.7, 0.45]
-</div>
-  <div class="diagram-note">Positions are this document's qualitative synthesis based on the evidence in <code>pa-alternatives.md</code> §7 comparison table.</div>
+  <p>Two questions decide everything: does the approach <strong>structurally change</strong> PA, and does it reach <strong>a lot of care or a little</strong>?</p>
+  <table class="matrix">
+    <thead>
+      <tr>
+        <th class="corner"></th>
+        <th>Narrow reach<br/><span style="font-weight:400">few providers or services</span></th>
+        <th>Broad reach<br/><span style="font-weight:400">most of the market</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="rowhead">Structurally reduces or eliminates PA</td>
+        <td>
+          <ul>
+            <li><strong>Value-based / risk-sharing care</strong> — removes the payer's reason to review</li>
+            <li>Gold-carding — ~3% of Texas providers qualify</li>
+          </ul>
+        </td>
+        <td class="empty keycell">Empty — and this is the whole finding. Nothing both eliminates PA <em>and</em> reaches the broad market.</td>
+      </tr>
+      <tr>
+        <td class="rowhead">Speeds up or narrows only</td>
+        <td class="empty">—</td>
+        <td>
+          <ul>
+            <li>CMS-0057-F — digitizes, same scope</li>
+            <li>Real-time benefit checks — earlier visibility</li>
+            <li>Insurer pledges — named codes only, reversible</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="diagram-note">Placement is this document's qualitative synthesis based on the evidence in <code>pa-alternatives.md</code> §7. The top-right cell being empty is the answer to the question this report asks.</div>
 </section>
 
 <section>
@@ -105,8 +136,6 @@ quadrantChart
 </section>
 
 </main>
-<script>
-  mermaid.initialize({ startOnLoad: true, theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default', securityLevel: 'loose' });
-</script>
+<script src="diagrams.js"></script>
 </body>
 </html>

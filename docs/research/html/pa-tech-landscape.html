@@ -30,6 +30,14 @@
   .tag-oss{color:var(--accent2); font-weight:600;}
   .tag-risk{color:var(--bad); font-weight:600;}
   .diagram-note{font-size:.8rem; color:var(--muted); margin-top:.5rem;}
+  .matrix{border-collapse:collapse; width:100%; font-size:.85rem; margin-top:.75rem; table-layout:fixed;}
+  .matrix th,.matrix td{border:1px solid var(--line); padding:.7rem; vertical-align:top;}
+  .matrix thead th{background:rgba(52,87,213,.08); text-align:center;}
+  .matrix .rowhead{background:rgba(52,87,213,.04); font-weight:600; width:9rem;}
+  .matrix ul{margin:0; padding-left:1.1rem;}
+  .matrix li{margin:.2rem 0;}
+  .matrix .empty{color:var(--muted); font-style:italic;}
+  .corner{background:transparent !important; border:none !important;}
   a{color:var(--accent);}
   nav.crumbs{max-width:960px; margin:1rem auto 0; padding:0 1.5rem; font-size:.85rem;}
 </style>
@@ -44,28 +52,21 @@
 
 <section>
   <h2>1. The PA workflow — who covers what stage</h2>
-  <p>Every vendor solution maps onto some subset of five stages. Microsoft focuses on clinical-criteria review (payer side); AWS spans the full pipeline; n8n is a generic no-code assembly; Epic checks eligibility at the moment of ordering.</p>
+  <p>Every vendor solution maps onto some subset of five stages, from intake to appeals.</p>
   <div class="mermaid">
 flowchart LR
-  A[Intake] --> B[Eligibility check] --> C[Clinical criteria matching] --> D[Submission] --> E[Appeals]
-  MS["Microsoft Accelerator<br/>(payer-side reviewer)"] -.covers.-> C
-  GC["Google Claims<br/>Acceleration Suite"] -.covers.-> A
-  GC -.covers.-> B
-  GC -.covers.-> D
-  AWS1["AWS Bedrock AgentCore<br/>(full pipeline)"] -.covers.-> A
-  AWS1 -.covers.-> B
-  AWS1 -.covers.-> C
-  AWS1 -.covers.-> D
-  N8N["n8n community template<br/>(generic no-code)"] -.covers.-> A
-  N8N -.covers.-> C
-  EPIC["Epic CRD<br/>(real-time, in-EHR)"] -.covers.-> B
-  COHERE["Cohere Health<br/>(full pipeline SaaS)"] -.covers.-> A
-  COHERE -.covers.-> B
-  COHERE -.covers.-> C
-  COHERE -.covers.-> D
-  COHERE -.covers.-> E
+  A[Intake] --> B[Eligibility] --> C[Clinical criteria] --> D[Submission] --> E[Appeals]
 </div>
-  <div class="diagram-note">Dotted arrows show which stage(s) each vendor's product actually targets, per <code>pa-tech-landscape.md</code>.</div>
+  <table>
+    <tr><th>Vendor</th><th>Intake</th><th>Eligibility</th><th>Clinical criteria</th><th>Submission</th><th>Appeals</th></tr>
+    <tr><td>Microsoft Accelerator</td><td></td><td></td><td>&#10003;</td><td></td><td></td></tr>
+    <tr><td>Google Claims Suite</td><td>&#10003;</td><td>&#10003;</td><td></td><td>&#10003;</td><td></td></tr>
+    <tr><td>AWS Bedrock AgentCore</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td></td></tr>
+    <tr><td>n8n community template</td><td>&#10003;</td><td></td><td>&#10003;</td><td></td><td></td></tr>
+    <tr><td>Epic CRD</td><td></td><td>&#10003;</td><td></td><td></td><td></td></tr>
+    <tr><td>Cohere Health</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+  </table>
+  <div class="diagram-note">A checkmark means the vendor's product actually touches that stage today, per <code>pa-tech-landscape.md</code>.</div>
 </section>
 
 <section>
@@ -73,14 +74,14 @@ flowchart LR
   <p>A FastAPI dispatcher hands each case to four agents — two run in parallel, then two run sequentially — before a human reviewer sees the result in a Next.js UI.</p>
   <div class="mermaid">
 flowchart TD
-  U[PA case submitted] --> Dispatch[FastAPI Dispatcher]
-  Dispatch --> Compliance[Compliance Agent<br/>checklist + billing-code check]
-  Dispatch --> Clinical[Clinical Reviewer Agent<br/>reads notes, pulls literature]
-  Compliance --> Coverage[Coverage Agent<br/>CMS policy + credential lookup]
+  Case[PA case submitted] --> Dispatch[Dispatcher]
+  Dispatch --> Compliance[Compliance Agent]
+  Dispatch --> Clinical[Clinical Agent]
+  Compliance --> Coverage[Coverage Agent]
   Clinical --> Coverage
-  Coverage --> Synth[Synthesis Agent<br/>3-gate rubric: Provider &rarr; Codes &rarr; Medical Necessity]
-  Synth --> Out["Recommendation + confidence score<br/>shown live in Next.js UI"]
-  Out --> Human((Human reviewer<br/>required before final decision))
+  Coverage --> Synth[Synthesis Agent]
+  Synth --> Out[Recommendation and<br/>confidence score]
+  Out --> Human((Human reviewer))
   style Human fill:#b4530920,stroke:#b45309
 </div>
   <div class="diagram-note">Stack: Azure OpenAI GPT-5.4, Microsoft Agent Framework, Azure Container Apps, 5 MCP healthcare-data servers (NPI, ICD-10, CMS coverage, clinical trials, PubMed). Microsoft calls this a <strong>proof-of-concept</strong>, not a compliant product.</div>
@@ -90,17 +91,15 @@ flowchart TD
   <h2>3. AWS reference architecture (Bedrock AgentCore)</h2>
   <p>AWS's most complete pipeline: an orchestrator detects that a PA is needed, then three specialist agents handle eligibility, documents, and submission — with a mandatory human-approval gate before any decision executes.</p>
   <div class="mermaid">
-flowchart LR
-  Trigger["Scheduling call<br/>(Amazon Connect/Lex)<br/>or EHR order"] --> Orchestrator[Orchestrator Agent<br/>detects PA is needed]
-  Orchestrator --> Elig[Eligibility<br/>Verification Agent]
-  Orchestrator --> Doc[Document Processing Agent<br/>S3 + auto-classification]
-  HealthLake[(AWS HealthLake<br/>FHIR store)] --> Elig
-  HealthScribe[HealthScribe<br/>visit transcription] --> Doc
-  Elig --> PAAgent[Prior Authorization Agent<br/>fills + submits payer forms]
+flowchart TD
+  Trigger[Order or scheduling call] --> Orchestrator[Orchestrator Agent]
+  Orchestrator --> Elig[Eligibility Agent]
+  Orchestrator --> Doc[Document Agent]
+  Elig --> PAAgent[Prior Authorization Agent]
   Doc --> PAAgent
-  PAAgent --> Gate{Human approval gate}
-  Gate -- approved --> Submit[Submit to payer<br/>electronic or manual channel]
-  Gate -- rejected/edited --> PAAgent
+  PAAgent --> Gate{Human approval}
+  Gate -->|approved| Submit[Submit to payer]
+  Gate -->|edited| PAAgent
   style Gate fill:#b4530920,stroke:#b45309
 </div>
   <div class="diagram-note">Security layer (separate AWS post): 4 trust zones — app, API boundary, agent platform (Cedar policies, KMS, PrivateLink), audit layer — the most detailed public HIPAA-agent design of the three hyperscalers.</div>
@@ -111,15 +110,16 @@ flowchart LR
   <p>A generic no-code automation, not a healthcare-purpose-built system. The emergency fast-track path had no documented human check before the reported incident.</p>
   <div class="mermaid">
 flowchart TD
-  Gmail[Gmail trigger:<br/>incoming PA email] --> Extract["AI PDF extraction<br/>(patient, insurance, procedure codes)"]
-  Extract --> Triage{Emergency Triage?}
-  Triage -- Yes --> Fast["Fast-track auto-approval<br/>(no documented human check)"]
-  Triage -- No --> Standard[Coverage check + documentation<br/>completeness validation]
-  Standard --> Review{Requires Review?}
-  Review -- Yes --> SlackHuman[Route to human via Slack]
-  Review -- No --> Auto[Auto-processed]
-  Fast --> Log[(Google Sheets log<br/>+ Slack post)]
-  Standard --> Log
+  Gmail[Gmail trigger:<br/>incoming PA email] --> Extract[AI PDF extraction]
+  Extract --> Triage{Emergency case?}
+  Triage -->|yes| Fast[Fast-track auto-approval:<br/>no human check]
+  Triage -->|no| Standard[Coverage and<br/>documentation check]
+  Standard --> Review{Needs review?}
+  Review -->|yes| SlackHuman[Route to human via Slack]
+  Review -->|no| Auto[Auto-processed]
+  Fast --> Log[(Sheets log and<br/>Slack post)]
+  Auto --> Log
+  SlackHuman --> Log
   style Fast fill:#b91c1c25,stroke:#b91c1c,stroke-width:2px
 </div>
   <div class="diagram-note tag-risk">This template's Gmail/Slack/Sheets integrations have no BAA by default, and n8n itself has no built-in HIPAA certification. This is the path a real incident (unverified in detail) was reportedly linked to.</div>
@@ -127,27 +127,48 @@ flowchart TD
 
 <section>
   <h2>5. Maturity vs. openness — where each vendor sits</h2>
-  <div class="mermaid">
-quadrantChart
-  title Vendor maturity vs availability
-  x-axis "Reference architecture" --> "Production SaaS"
-  y-axis "Closed / proprietary" --> "Open source"
-  quadrant-1 "Open reference"
-  quadrant-2 "Open and production"
-  quadrant-3 "Closed reference"
-  quadrant-4 "Closed production SaaS"
-  "Microsoft Accelerator": [0.2, 0.85]
-  "AWS reference architectures": [0.25, 0.8]
-  "n8n template": [0.35, 0.9]
-  "Google Claims Suite": [0.55, 0.15]
-  "Cohere Health": [0.9, 0.1]
-  "Availity AuthAI": [0.85, 0.1]
-  "Epic CRD": [0.9, 0.15]
-  "Notable Health": [0.8, 0.1]
-  "athenahealth": [0.85, 0.12]
-  "Olive AI - defunct": [0.4, 0.2]
-</div>
-  <div class="diagram-note">Positions are this document's qualitative synthesis (see <code>pa-tech-landscape.md</code> §Synthesis), not a vendor-provided metric.</div>
+  <p>The split that matters most: is it something you <strong>buy and run</strong>, or a starting point you <strong>build and harden yourself</strong>?</p>
+  <table class="matrix">
+    <thead>
+      <tr>
+        <th class="corner"></th>
+        <th>Reference architecture<br/><span style="font-weight:400">you deploy and operate it</span></th>
+        <th>Production SaaS<br/><span style="font-weight:400">you buy it, vendor runs it</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="rowhead">Open source</td>
+        <td>
+          <ul>
+            <li>Microsoft Accelerator</li>
+            <li>AWS reference architectures</li>
+            <li>n8n template <span class="tag-risk">(unvetted, risky)</span></li>
+          </ul>
+        </td>
+        <td class="empty">Nothing here — no open-source, production-grade PA product found.</td>
+      </tr>
+      <tr>
+        <td class="rowhead">Closed / proprietary</td>
+        <td>
+          <ul>
+            <li>Olive AI <span class="tag-risk">(defunct 2023)</span></li>
+          </ul>
+        </td>
+        <td>
+          <ul>
+            <li>Cohere Health</li>
+            <li>Epic CRD</li>
+            <li>Availity AuthAI</li>
+            <li>athenahealth</li>
+            <li>Notable Health</li>
+            <li>Google Claims Suite <span style="color:var(--muted)">(partner-dependent)</span></li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="diagram-note">Placement is this document's qualitative synthesis (see <code>pa-tech-landscape.md</code> §Synthesis), not a vendor-provided metric. <strong>The takeaway:</strong> if you want open source, you are building and hardening it yourself — nobody ships a production-grade open-source PA product.</div>
 </section>
 
 <section>
@@ -163,8 +184,6 @@ quadrantChart
 </section>
 
 </main>
-<script>
-  mermaid.initialize({ startOnLoad: true, theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default', securityLevel: 'loose' });
-</script>
+<script src="diagrams.js"></script>
 </body>
 </html>

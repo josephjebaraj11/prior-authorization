@@ -42,24 +42,21 @@
   <h2>1. Recommended end-to-end architecture</h2>
   <div class="mermaid">
 flowchart TD
-  Order[Clinician places order in EHR] --> Hooks[CDS Hooks fires]
-  Hooks --> CovAgent["Coverage Agent<br/>calls payer's CRD API"]
-  CovAgent -->|PA required| DocAgent["Documentation Agent<br/>DTR-style auto-fill from chart"]
-  DocAgent --> Parallel
-  subgraph Parallel[Run in parallel]
-    ClinAgent[Clinical Agent<br/>validates evidence]
-    CompAgent[Compliance Agent<br/>validates paperwork]
-  end
-  Parallel --> DecAgent["Decision Agent<br/>confidence score"]
-  DecAgent --> Gate{Confidence &<br/>denial check}
-  Gate -->|High confidence, not a denial| SubAgent[Submission Agent<br/>sends via PAS/FHIR]
-  Gate -->|Low confidence OR any denial| Human(("Human reviewer<br/>pre-populated with findings"))
-  Human --> SubAgent
-  SubAgent --> Payer[Payer adjudication engine]
-  Payer --> Decision["Decision:<br/>approved / denied / pended"]
-  Decision -->|Pended| Followup[Follow-Up Agent<br/>handles via CDex]
-  Followup --> Payer
-  Decision -->|Denied or approved| Feedback[Feed outcome back into<br/>policy knowledge base]
+  Order[Order placed in EHR] --> Cov[Coverage Agent:<br/>calls CRD API]
+  Cov -->|PA required| Doc[Documentation Agent:<br/>auto-fills from chart]
+  Doc --> Clin[Clinical Agent]
+  Doc --> Comp[Compliance Agent]
+  Clin --> Dec[Decision Agent:<br/>confidence score]
+  Comp --> Dec
+  Dec --> Gate{High confidence<br/>and not a denial?}
+  Gate -->|Yes| Sub[Submission Agent]
+  Gate -->|No| Human((Human reviewer))
+  Human --> Sub
+  Sub --> Payer[Payer adjudication]
+  Payer --> Result[Decision]
+  Result -->|Pended| Follow[Follow-Up Agent]
+  Follow --> Payer
+  Result -->|Final| Feedback[Feeds back into<br/>policy knowledge base]
 
   style Human fill:#b4530920,stroke:#b45309,stroke-width:2px
   style Gate fill:#3457d520,stroke:#3457d5
@@ -71,29 +68,29 @@ flowchart TD
   <div class="mermaid">
 sequenceDiagram
   participant Clinician
-  participant Coverage as Coverage Agent
-  participant Clinical as Clinical Agent
-  participant Compliance as Compliance Agent
-  participant Decision as Decision Agent
-  participant Human as Human Reviewer
-  participant Submission as Submission Agent
+  participant Coverage
+  participant Clinical
+  participant Compliance
+  participant Decision
+  participant Human
+  participant Submission
   participant Payer
 
   Clinician->>Coverage: Order placed
   Coverage->>Payer: CRD check
-  Payer-->>Coverage: PA required + docs needed
+  Payer-->>Coverage: PA required
   Coverage->>Clinical: Gather evidence
   Coverage->>Compliance: Validate paperwork
-  Clinical-->>Decision: Evidence + medical necessity
-  Compliance-->>Decision: Paperwork completeness
-  Decision->>Decision: Compute confidence score
-  alt High confidence, no denial
+  Clinical-->>Decision: Evidence
+  Compliance-->>Decision: Completeness
+  Decision->>Decision: Score confidence
+  alt High confidence
     Decision->>Submission: Auto-submit
   else Low confidence or denial
-    Decision->>Human: Route with pre-populated findings
-    Human->>Submission: Approve / correct / escalate
+    Decision->>Human: Route for review
+    Human->>Submission: Approve or correct
   end
-  Submission->>Payer: PAS submission (FHIR)
+  Submission->>Payer: PAS submission
   Payer-->>Submission: Decision
   Submission-->>Clinician: Status update
 </div>
@@ -103,9 +100,9 @@ sequenceDiagram
   <h2>3. Rollout sequence</h2>
   <div class="mermaid">
 flowchart LR
-  P1["Phase 1<br/>Pilot: one payer,<br/>one high-volume/<br/>low-ambiguity case type<br/>(imaging, DME, refills)"] --> P2["Phase 2<br/>Measure against<br/>manual baseline<br/>(turnaround, denial rate,<br/>staff hours)"]
-  P2 --> P3["Phase 3<br/>Expand payer-by-payer<br/>and specialty-by-specialty"]
-  P3 --> P4["Phase 4<br/>Full FHIR/Da Vinci compliance<br/>ahead of Jan 1, 2027 deadline"]
+  P1[Phase 1<br/>Pilot one payer,<br/>one simple case type] --> P2[Phase 2<br/>Measure vs<br/>manual baseline]
+  P2 --> P3[Phase 3<br/>Expand payer<br/>by payer]
+  P3 --> P4[Phase 4<br/>Full compliance<br/>by Jan 2027]
   style P4 fill:#0f766e20,stroke:#0f766e
 </div>
 </section>
@@ -113,18 +110,25 @@ flowchart LR
 <section>
   <h2>4. Two failure modes to avoid</h2>
   <div class="mermaid">
-flowchart TB
-  subgraph FM1["Failure mode 1: under-engineered"]
+flowchart TD
+  subgraph UNDER[Failure mode 1: under-engineered]
     direction TB
-    N1[No-code tool] --> N2[Consumer integrations,<br/>no BAA] --> N3[No human gate<br/>on auto-approval] --> N4["n8n incident<br/>(reported, unverified detail)"]
+    N1[No-code tool] --> N2[Consumer integrations,<br/>no BAA]
+    N2 --> N3[No human gate<br/>on auto-approval]
+    N3 --> N4[n8n incident:<br/>care delayed]
   end
-  subgraph FM2["Failure mode 2: over-claimed"]
+
+  subgraph OVER[Failure mode 2: over-claimed]
     direction TB
-    O1[Well-funded vendor] --> O2["RPA marketed as<br/>deep AI"] --> O3[Rules don't<br/>generalize] --> O4["Olive AI shutdown<br/>(Oct 2023, $850M+ raised)"]
+    O1[Well-funded vendor] --> O2[Scripted automation<br/>marketed as deep AI]
+    O2 --> O3[Rules do not<br/>generalize across payers]
+    O3 --> O4[Olive AI shutdown:<br/>860M dollars raised]
   end
+
   style N4 fill:#b91c1c25,stroke:#b91c1c
   style O4 fill:#b91c1c25,stroke:#b91c1c
 </div>
+  <div class="diagram-note">Opposite ends of the same spectrum: too little engineering rigor on the left, too much marketing on the right. Both end in a failed deployment.</div>
 </section>
 
 <section>
@@ -141,8 +145,6 @@ flowchart TB
 </section>
 
 </main>
-<script>
-  mermaid.initialize({ startOnLoad: true, theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default', securityLevel: 'loose' });
-</script>
+<script src="diagrams.js"></script>
 </body>
 </html>

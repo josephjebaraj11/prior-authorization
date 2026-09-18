@@ -39,26 +39,24 @@
   <div class="mermaid">
 sequenceDiagram
   participant Clinician
-  participant EHR as EHR (e.g. Epic)
-  participant CH as Clearinghouse<br/>(e.g. Availity)
+  participant EHR
+  participant CH as Clearinghouse
   participant Payer
 
-  Clinician->>EHR: Places order (e.g. MRI)
-  EHR->>EHR: CDS Hooks fires (order-select event)
-  EHR->>Payer: CRD request — "does this need PA?"
-  Payer-->>EHR: Yes + required documentation list
-  EHR->>EHR: DTR session — auto-fills questionnaire from chart
-  Clinician->>EHR: Reviews/completes remaining fields
-  EHR->>CH: PAS submission (FHIR Claim + questionnaire)
-  CH->>Payer: Routed / translated (sometimes to X12 278 internally)
-  Payer->>Payer: Adjudication engine (often a legacy rules engine)
-  Payer-->>CH: Decision: approved / denied / pended
+  Clinician->>EHR: Places order
+  EHR->>Payer: CRD: needs PA?
+  Payer-->>EHR: Yes, plus required docs
+  EHR->>EHR: DTR auto-fills from chart
+  EHR->>CH: PAS submission
+  CH->>Payer: Routed to payer
+  Payer->>Payer: Adjudication engine
+  Payer-->>CH: Decision
   CH-->>EHR: Decision returned
-  alt Pended — more info needed
-    EHR->>Payer: CDex — additional documentation
+  alt Pended
+    EHR->>Payer: CDex: more documentation
     Payer-->>EHR: Updated decision
   end
-  EHR-->>Clinician: PA status shown in workflow
+  EHR-->>Clinician: PA status shown
 </div>
   <div class="diagram-note">Note: the clearinghouse rarely disappears — most traffic still passes through an intermediary rather than a direct EHR&harr;payer connection.</div>
 </section>
@@ -67,14 +65,14 @@ sequenceDiagram
   <h2>2. Architecture: where each Da Vinci standard fires</h2>
   <div class="mermaid">
 flowchart TD
-  Order["Clinician places order"] --> Hooks["CDS Hooks<br/>(trigger mechanism)"]
-  Hooks --> CRD["CRD — Coverage Requirements Discovery<br/>'does this need PA?'"]
-  CRD -->|Yes| DTR["DTR — Documentation Templates and Rules<br/>auto-fills payer questionnaire from chart"]
-  DTR --> PAS["PAS — Prior Authorization Support<br/>submits FHIR Claim + decision received"]
-  PAS -->|Pended| CDex["CDex — Clinical Data Exchange<br/>additional documentation requested"]
+  Order[Clinician places order] --> Hooks[CDS Hooks fires]
+  Hooks --> CRD[CRD: needs PA?]
+  CRD -->|Yes| DTR[DTR: auto-fill questionnaire]
+  DTR --> PAS[PAS: submit and get decision]
+  PAS -->|Pended| CDex[CDex: more documentation]
   CDex --> PAS
-  PAS -->|Approved / Denied| Done["Decision recorded in EHR"]
-  CRD -.->|No PA needed| Done
+  PAS -->|Decided| Done[Decision recorded in EHR]
+  CRD -->|No PA needed| Done
 
   style CRD fill:#3457d520,stroke:#3457d5
   style DTR fill:#3457d520,stroke:#3457d5
@@ -87,21 +85,22 @@ flowchart TD
   <h2>3. Legacy vs. modern standards coexisting</h2>
   <div class="mermaid">
 flowchart LR
-  subgraph Modern["Modern front door"]
-    FHIR[HL7 FHIR API<br/>CRD / DTR / PAS / CDex]
+  subgraph MED[Medical PA - the CMS-mandated path]
+    direction LR
+    EHR2[Provider EHR] --> FHIR[FHIR API:<br/>CRD, DTR, PAS, CDex]
+    FHIR -->|payer translates<br/>internally| X12[X12 278<br/>legacy EDI]
+    X12 --> Adjud[Payer adjudication<br/>engine]
+    Adjud --> MedDec[Medical PA decision]
   end
-  subgraph Legacy["Legacy back office"]
-    X12[X12 278<br/>HIPAA-mandated EDI]
-    NCPDP[NCPDP SCRIPT<br/>pharmacy ePA]
+
+  subgraph RX[Pharmacy PA - a separate track]
+    direction LR
+    RxEHR[E-prescribing system] --> NCPDP[NCPDP SCRIPT<br/>pharmacy ePA]
+    NCPDP --> PBM[PBM system]
+    PBM --> RxDec[Pharmacy PA decision]
   end
-  EHR2[Provider EHR] --> FHIR
-  FHIR -->|payer translates internally| X12
-  X12 --> Adjud[Payer's legacy<br/>adjudication engine]
-  RxEHR[E-prescribing system] --> NCPDP
-  NCPDP --> PBM_System[PBM system]
-  Adjud --> Decision2[Decision]
-  PBM_System --> Decision2
 </div>
+  <div class="diagram-note">These are two <strong>separate</strong> pipelines, not one. Pharmacy PA runs on NCPDP standards through PBMs and already has high adoption; medical PA is the one CMS-0057-F targets with FHIR. A drug request and a procedure request never meet in the same system.</div>
   <div class="diagram-note">CMS grants enforcement discretion: a payer can run fully FHIR-based without filing a separate X12 278 — but most still translate internally to older adjudication engines.</div>
 </section>
 
@@ -121,8 +120,6 @@ flowchart LR
 </section>
 
 </main>
-<script>
-  mermaid.initialize({ startOnLoad: true, theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default', securityLevel: 'loose' });
-</script>
+<script src="diagrams.js"></script>
 </body>
 </html>

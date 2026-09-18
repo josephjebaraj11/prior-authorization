@@ -38,62 +38,33 @@
   <h2>1. Market ecosystem map</h2>
   <p>Payers, PBMs, providers/EHRs, and startups — and the acquisitions/partnerships connecting them.</p>
   <div class="mermaid">
-flowchart TB
-  subgraph PAYERS[Payers]
-    UHC[UnitedHealthcare / Optum]
-    CVSA[CVS Health / Aetna]
-    HUM[Humana]
-    ELV[Elevance / Carelon]
-  end
-  subgraph PBM[PBMs]
-    CAREMARK[CVS Caremark]
-    OPTUMRX[OptumRx]
-    EXPRESS[Express Scripts / Evernorth]
-  end
-  subgraph EHR[Providers / EHR vendors]
-    EPIC[Epic]
-    ATHENA[athenahealth]
-    FORT[Fort HealthCare]
-    ALLEGHENY[Allegheny Health Network]
-  end
-  subgraph STARTUPS[Startups / vendors]
-    COHERE[Cohere Health]
-    OLIVE["Olive AI (defunct 2023)"]
-    HUMATA[Humata Health]
-    ANTERIOR[Anterior]
-    INFINITUS[Infinitus Systems]
-    NOTABLE[Notable Health]
-    AVAILITY[Availity]
-    MYNDSHFT[Myndshft / DrFirst]
-    RIALTIC[Rialtic]
-  end
-
-  UHC --> OPTUMRX
-  UHC -- funds + partners --> HUMATA
-  OLIVE -- "PA business sold to" --> HUMATA
-  OLIVE -- "clearinghouse business sold to" --> WAYSTAR[Waystar]
-  ATHENA -- integration --> AVAILITY
-  AVAILITY -- FHIR gateway --> HUM
-  FORT --> NOTABLE
-  ALLEGHENY --> HUMATA
-  CVSA --> CAREMARK
+flowchart LR
+  OLIVE[Olive AI<br/>shut down 2023] -->|PA business<br/>sold to| HUMATA[Humata Health]
+  OLIVE -->|clearinghouse<br/>sold to| WAYSTAR[Waystar]
+  UHC[UnitedHealthcare<br/>and Optum] -->|invested in,<br/>then partnered with| HUMATA
+  FORT[Fort HealthCare<br/>health system] -->|bought| NOTABLE[Notable Health]
+  ATHENA[athenahealth<br/>EHR] -->|routes PA through| AVAILITY[Availity<br/>clearinghouse]
+  AVAILITY -->|submits to| HUM[Humana<br/>payer]
 
   style OLIVE fill:#b91c1c25,stroke:#b91c1c
 </div>
-  <div class="diagram-note">Olive AI (defunct, $850M+ raised) is the clearest cautionary node — its PA business survives as Humata Health, which Optum then commercially partnered with.</div>
+  <div class="diagram-note">Olive AI ($850M+ raised, shut down 2023) is the clearest cautionary node — its PA business survives as Humata Health, which Optum then commercially partnered with. See the report for the full list of payers, PBMs, and startups.</div>
 </section>
 
 <section>
   <h2>2. Regulatory & market timeline</h2>
   <div class="mermaid">
 timeline
-  title Prior Authorization automation: key dates
-  2020 : Verata Health founded (later acquired by Olive AI)
-  2023 : Olive AI shuts down, Oct 2023 : UnitedHealthcare pledges ~20% PA cut
-  2024 : CMS-0057-F interoperability rule finalized (Jan) : CVS Caremark covers 40 medications : nH Predict Senate investigation findings published
-  2025 : AHIP 48-insurer pledge (July, ~257M lives) : CVS Caremark expands to 83+ medications : Anterior, Humata Health raise funding rounds
-  2026 : CMS-0057-F operational deadlines begin (decision timeframes, denial transparency) : AHIP reports 11% PA reduction (6.5M requests) : Epic CRD live at 4+ health systems
-  2027 : CMS-0057-F FHIR API deadline (Jan 1) — Prior Auth, Provider Access, Payer-to-Payer APIs required
+  title Key dates in PA automation
+  2023 : Olive AI shuts down
+       : UnitedHealthcare pledges PA cuts
+  2024 : CMS-0057-F rule finalized
+       : nH Predict Senate findings published
+  2025 : AHIP 48-insurer pledge
+       : Startup funding rounds accelerate
+  2026 : CMS-0057-F decision timeframes begin
+       : Epic CRD live at 4+ health systems
+  2027 : CMS-0057-F FHIR API deadline
 </div>
 </section>
 
@@ -103,17 +74,17 @@ timeline
   <div class="mermaid">
 sequenceDiagram
   participant Clinician
-  participant athenahealth as athenaOne (EHR)
-  participant Availity as Availity (clearinghouse / FHIR gateway)
-  participant Humana as Humana (payer)
+  participant EHR as athenaOne EHR
+  participant CH as Availity clearinghouse
+  participant Payer as Humana
 
-  Clinician->>athenahealth: Places order requiring PA
-  athenahealth->>Availity: CRD/DTR/PAS request (FHIR)
-  Availity->>Humana: Routed via FHIR gateway
-  Humana-->>Availity: Coverage decision
-  Availity-->>athenahealth: Decision returned
-  athenahealth-->>Clinician: PA status shown in workflow
-  Note over athenahealth,Humana: Won a KLAS innovation award — <br/>a genuine 3-party pipeline, not just each side claiming FHIR support
+  Clinician->>EHR: Places order needing PA
+  EHR->>CH: FHIR request
+  CH->>Payer: Routed via gateway
+  Payer-->>CH: Coverage decision
+  CH-->>EHR: Decision returned
+  EHR-->>Clinician: PA status shown
+  Note over EHR,Payer: Real 3-party FHIR pipeline, KLAS award winner
 </div>
 </section>
 
@@ -121,14 +92,18 @@ sequenceDiagram
   <h2>4. How trustworthy are the published numbers?</h2>
   <div class="mermaid">
 flowchart LR
-  A[Vendor claim<br/>self-reported] -->|most common| B[Customer case study<br/>vendor + named customer]
-  B -->|rarer, more credible| C[Independent / third-party<br/>no commercial stake]
-  C -.only 2 found.-> D["PHTI report:<br/>no system-wide cost reduction shown"]
-  C -.only 2 found.-> E["nH Predict litigation:<br/>~90% appeal-reversal rate alleged"]
+  A["TIER 3 — least credible<br/>Vendor claim<br/>(self-reported)"]
+  B["TIER 2<br/>Customer case study<br/>(vendor picked the customer)"]
+  C["TIER 1 — most credible<br/>Independent third party<br/>(no commercial stake)"]
+  C --> D[PHTI: no system-wide<br/>cost reduction shown]
+  C --> E[nH Predict litigation:<br/>high reversal rate alleged]
+  style A fill:#b91c1c15,stroke:#b91c1c
+  style B fill:#b4530915,stroke:#b45309
+  style C fill:#0f766e20,stroke:#0f766e
   style D fill:#b4530920,stroke:#b45309
   style E fill:#b91c1c25,stroke:#b91c1c
 </div>
-  <div class="diagram-note">Nearly every "96% first-pass approval" or "18-second decision" figure in this space sits in the left two boxes. Weigh accordingly.</div>
+  <div class="diagram-note">These are three <strong>credibility tiers</strong>, not process steps. Nearly every "96% first-pass approval" or "18-second decision" figure in this space is Tier 3. Only two Tier 1 findings exist — and both counsel caution.</div>
 </section>
 
 <section>
@@ -144,8 +119,6 @@ flowchart LR
 </section>
 
 </main>
-<script>
-  mermaid.initialize({ startOnLoad: true, theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default', securityLevel: 'loose' });
-</script>
+<script src="diagrams.js"></script>
 </body>
 </html>
