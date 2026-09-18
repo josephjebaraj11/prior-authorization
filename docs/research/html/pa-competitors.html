@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PA Competitors — Ecosystem Diagrams</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root{ --bg:#f7f7f5; --panel:#ffffff; --ink:#1c1d1f; --muted:#5b5e64; --line:#e2e2e0; --accent:#3457d5; --accent2:#0f766e; --warn:#b45309; --bad:#b91c1c; }
+  @media (prefers-color-scheme: dark){ :root{ --bg:#15161a; --panel:#1d1f24; --ink:#eceef1; --muted:#9aa0aa; --line:#2b2e35; --accent:#7c9bff; --accent2:#2dd4bf; --warn:#f0b429; --bad:#f87171; } }
+  *{box-sizing:border-box}
+  body{background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; margin:0; padding:0 0 4rem;}
+  header{padding:2.5rem 1.5rem 1.5rem; max-width:960px; margin:0 auto;}
+  h1{font-size:1.7rem; margin:0 0 .3rem;}
+  .sub{color:var(--muted); font-size:.95rem;}
+  main{max-width:960px; margin:0 auto; padding:0 1.5rem;}
+  section{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:1.5rem; margin-bottom:1.5rem;}
+  h2{font-size:1.15rem; margin-top:0;}
+  .mermaid{background:transparent; overflow-x:auto;}
+  table{border-collapse:collapse; width:100%; font-size:.85rem; margin-top:.5rem;}
+  th,td{border:1px solid var(--line); padding:.5rem .6rem; text-align:left; vertical-align:top;}
+  th{background:rgba(52,87,213,.08); font-weight:600;}
+  .diagram-note{font-size:.8rem; color:var(--muted); margin-top:.5rem;}
+  a{color:var(--accent);}
+  .tag-risk{color:var(--bad); font-weight:600;}
+  nav.crumbs{max-width:960px; margin:1rem auto 0; padding:0 1.5rem; font-size:.85rem;}
+</style>
+</head>
+<body>
+<nav class="crumbs"><a href="index.html">&larr; All research</a></nav>
+<header>
+  <h1>Who's Using PA Automation and How They're Performing</h1>
+  <div class="sub">Visual companion to <a href="../pa-competitors.md">pa-competitors.md</a> — the market map, the regulatory timeline forcing everyone's hand, and one detailed cross-company data flow.</div>
+</header>
+<main>
+
+<section>
+  <h2>1. Market ecosystem map</h2>
+  <p>Payers, PBMs, providers/EHRs, and startups — and the acquisitions/partnerships connecting them.</p>
+  <div class="mermaid">
+flowchart TB
+  subgraph PAYERS[Payers]
+    UHC[UnitedHealthcare / Optum]
+    CVSA[CVS Health / Aetna]
+    HUM[Humana]
+    ELV[Elevance / Carelon]
+  end
+  subgraph PBM[PBMs]
+    CAREMARK[CVS Caremark]
+    OPTUMRX[OptumRx]
+    EXPRESS[Express Scripts / Evernorth]
+  end
+  subgraph EHR[Providers / EHR vendors]
+    EPIC[Epic]
+    ATHENA[athenahealth]
+    FORT[Fort HealthCare]
+    ALLEGHENY[Allegheny Health Network]
+  end
+  subgraph STARTUPS[Startups / vendors]
+    COHERE[Cohere Health]
+    OLIVE["Olive AI (defunct 2023)"]
+    HUMATA[Humata Health]
+    ANTERIOR[Anterior]
+    INFINITUS[Infinitus Systems]
+    NOTABLE[Notable Health]
+    AVAILITY[Availity]
+    MYNDSHFT[Myndshft / DrFirst]
+    RIALTIC[Rialtic]
+  end
+
+  UHC --> OPTUMRX
+  UHC -- funds + partners --> HUMATA
+  OLIVE -- "PA business sold to" --> HUMATA
+  OLIVE -- "clearinghouse business sold to" --> WAYSTAR[Waystar]
+  ATHENA -- integration --> AVAILITY
+  AVAILITY -- FHIR gateway --> HUM
+  FORT --> NOTABLE
+  ALLEGHENY --> HUMATA
+  CVSA --> CAREMARK
+
+  style OLIVE fill:#b91c1c25,stroke:#b91c1c
+</div>
+  <div class="diagram-note">Olive AI (defunct, $850M+ raised) is the clearest cautionary node — its PA business survives as Humata Health, which Optum then commercially partnered with.</div>
+</section>
+
+<section>
+  <h2>2. Regulatory & market timeline</h2>
+  <div class="mermaid">
+timeline
+  title Prior Authorization automation: key dates
+  2020 : Verata Health founded (later acquired by Olive AI)
+  2023 : Olive AI shuts down, Oct 2023 : UnitedHealthcare pledges ~20% PA cut
+  2024 : CMS-0057-F interoperability rule finalized (Jan) : CVS Caremark covers 40 medications : nH Predict Senate investigation findings published
+  2025 : AHIP 48-insurer pledge (July, ~257M lives) : CVS Caremark expands to 83+ medications : Anterior, Humata Health raise funding rounds
+  2026 : CMS-0057-F operational deadlines begin (decision timeframes, denial transparency) : AHIP reports 11% PA reduction (6.5M requests) : Epic CRD live at 4+ health systems
+  2027 : CMS-0057-F FHIR API deadline (Jan 1) — Prior Auth, Provider Access, Payer-to-Payer APIs required
+</div>
+</section>
+
+<section>
+  <h2>3. A real cross-company data flow: athenahealth &rarr; Availity &rarr; Humana</h2>
+  <p>One of the few publicly documented, end-to-end, three-party FHIR pipelines actually working in production.</p>
+  <div class="mermaid">
+sequenceDiagram
+  participant Clinician
+  participant athenahealth as athenaOne (EHR)
+  participant Availity as Availity (clearinghouse / FHIR gateway)
+  participant Humana as Humana (payer)
+
+  Clinician->>athenahealth: Places order requiring PA
+  athenahealth->>Availity: CRD/DTR/PAS request (FHIR)
+  Availity->>Humana: Routed via FHIR gateway
+  Humana-->>Availity: Coverage decision
+  Availity-->>athenahealth: Decision returned
+  athenahealth-->>Clinician: PA status shown in workflow
+  Note over athenahealth,Humana: Won a KLAS innovation award — <br/>a genuine 3-party pipeline, not just each side claiming FHIR support
+</div>
+</section>
+
+<section>
+  <h2>4. How trustworthy are the published numbers?</h2>
+  <div class="mermaid">
+flowchart LR
+  A[Vendor claim<br/>self-reported] -->|most common| B[Customer case study<br/>vendor + named customer]
+  B -->|rarer, more credible| C[Independent / third-party<br/>no commercial stake]
+  C -.only 2 found.-> D["PHTI report:<br/>no system-wide cost reduction shown"]
+  C -.only 2 found.-> E["nH Predict litigation:<br/>~90% appeal-reversal rate alleged"]
+  style D fill:#b4530920,stroke:#b45309
+  style E fill:#b91c1c25,stroke:#b91c1c
+</div>
+  <div class="diagram-note">Nearly every "96% first-pass approval" or "18-second decision" figure in this space sits in the left two boxes. Weigh accordingly.</div>
+</section>
+
+<section>
+  <h2>Key takeaways</h2>
+  <table>
+    <tr><th>Category</th><th>Leader(s)</th><th>Watch out for</th></tr>
+    <tr><td>Payer-built</td><td>Optum (Digital Auth Complete, InterQual Auth Accelerator)</td><td class="tag-risk">nH Predict litigation — denial rate roughly doubled after AI introduction</td></tr>
+    <tr><td>PBM</td><td>CVS Caremark (18–22 sec median approval)</td><td>Vendor-reported, not independently audited</td></tr>
+    <tr><td>EHR</td><td>Epic Payer Platform (CRD live, 4+ health systems)</td><td>Requires payer-side integration to actually pay off</td></tr>
+    <tr><td>Startup</td><td>Cohere Health ($106M raised, full pipeline)</td><td>"AI never denies" is a policy choice, not a technical guarantee</td></tr>
+  </table>
+  <p><a href="../pa-competitors.md">Read the full markdown report &rarr;</a></p>
+</section>
+
+</main>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default', securityLevel: 'loose' });
+</script>
+</body>
+</html>
