@@ -13,6 +13,7 @@ import { Header } from "~/components/layout/Header";
 import { Button } from "~/components/ui/Button";
 import { Container } from "~/components/ui/Container";
 import { SITE } from "~/content/site";
+import { withBase } from "~/lib/base-url";
 import { organizationGraph } from "~/lib/structured-data";
 import { THEME_INIT_SCRIPT } from "~/lib/theme";
 
@@ -25,19 +26,19 @@ export const links: Route.LinksFunction = () => [
   // starts them in parallel with the stylesheet rather than after it.
   {
     rel: "preload",
-    href: "/fonts/inter-latin.woff2",
+    href: withBase("/fonts/inter-latin.woff2"),
     as: "font",
     type: "font/woff2",
     crossOrigin: "anonymous",
   },
   {
     rel: "preload",
-    href: "/fonts/source-serif-4-latin.woff2",
+    href: withBase("/fonts/source-serif-4-latin.woff2"),
     as: "font",
     type: "font/woff2",
     crossOrigin: "anonymous",
   },
-  { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+  { rel: "icon", href: withBase("/favicon.svg"), type: "image/svg+xml" },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {

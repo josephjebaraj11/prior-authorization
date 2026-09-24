@@ -14,12 +14,6 @@ export function meta() {
   ];
 }
 
-// Returning a 404 status keeps crawlers and monitoring honest about the fact
-// that this URL does not exist.
-export function loader() {
-  throw new Response("Not Found", { status: 404 });
-}
-
 export default function NotFoundRoute() {
   return (
     <Container size="narrow" className="pb-28 pt-16 text-center">

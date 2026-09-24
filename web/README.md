@@ -6,7 +6,7 @@ platform for medical practices.
 The logo is an N monogram set in a hexagonal node — the hexagon reads as a hub
 and carries the "nex-" in the name, and the N's right stem finishes above its
 left so the letterform lifts. It ships as `<Logo />` (mark + wordmark) and
-`<Logo variant="icon" />`, with the same geometry in `public/favicon.svg`. Server-rendered React Router 7 app, styled with
+`<Logo variant="icon" />`, with the same geometry in `public/favicon.svg`. Prerendered React Router 7 app, styled with
 Tailwind CSS 3.
 
 > Content note: copy, statistics attribution, pricing and testimonials are
@@ -30,8 +30,8 @@ npm install
 | Command | What it does |
 |---|---|
 | `npm run dev` | Start the dev server with HMR at http://localhost:5173 |
-| `npm run build` | Production build into `build/` (client + server bundles) |
-| `npm start` | Serve the production build at http://localhost:3000 (`PORT` env var to override) |
+| `npm run build` | Prerender every route into static files in `build/client/` |
+| `npm run preview` | Serve `build/client/` locally at http://localhost:4173 |
 | `npm run typecheck` | Generate route types, then run `tsc --noEmit` |
 | `npm run lint` | ESLint 9 flat config, zero warnings tolerated |
 | `npm run lint:fix` | ESLint with `--fix` |
@@ -252,6 +252,16 @@ Verified against the built site:
 
 - The contact form has no backend. Valid submissions render a success state;
   `app/components/forms/DemoForm.tsx` marks where a real POST would go.
-- The app is server-rendered so each page is served at exactly the URL its
-  canonical tag points at. To ship static files instead, add a `prerender`
-  array in `react-router.config.ts` — see the comment in that file.
+- Every route is prerendered to a flat `.html` file at build time, so each page
+  is served at exactly the URL its canonical tag points at, with no
+  trailing-slash redirect. Routes are listed in `prerender` in
+  `react-router.config.ts`; a new page must be added there to get a file.
+- `.github/workflows/deploy.yml` publishes `build/client/` to GitHub Pages on
+  every push to `main` that touches `web/`. Because a project site lives at
+  `/<repo>/`, CI builds with `BASE_PATH=/<repo>/`; `react-router.config.ts`
+  feeds that to both the router `basename` and Vite's `base`, and its
+  `buildEnd` hook flattens the output into a Pages-shaped tree. Paths written
+  as plain strings (a `<link href>`, a meta refresh) need `withBase()` from
+  `app/lib/base-url.ts` — `<Link>` and imported assets are handled for you.
+- Point a custom domain at the site and the prefix goes away: drop the
+  `BASE_PATH` env from the workflow and add a `web/public/CNAME` file.
