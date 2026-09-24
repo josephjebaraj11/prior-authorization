@@ -49,7 +49,12 @@ jobs:
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
 
+      # `enablement` turns Pages on for the repo if it is not already, so the
+      # first run does not fail with "Get Pages site failed". It also sets the
+      # source to GitHub Actions, which is what this workflow deploys through.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
