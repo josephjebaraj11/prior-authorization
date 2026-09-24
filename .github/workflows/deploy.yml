@@ -28,11 +28,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
 
@@ -49,13 +49,10 @@ jobs:
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
 
-      # `enablement` turns Pages on for the repo if it is not already, so the
-      # first run does not fail with "Get Pages site failed". It also sets the
-      # source to GitHub Actions, which is what this workflow deploys through.
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
+      # No actions/configure-pages step: it only reads or creates the Pages
+      # site through the API, which the default GITHUB_TOKEN is not allowed to
+      # do. Enable Pages once under Settings > Pages > Source: GitHub Actions
+      # and deploy-pages below handles every run from then on.
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/build/client
