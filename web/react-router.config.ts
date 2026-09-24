@@ -58,6 +58,9 @@ async function flattenIndexFiles(dir: string, root: string): Promise<void> {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) {
       await flattenIndexFiles(path, root);
+      // The rename below leaves the directory behind; drop it if that page was
+      // all it held.
+      if ((await readdir(path)).length === 0) await rm(path, { recursive: true });
     } else if (entry.name === "index.html" && dirname(path) !== root) {
       await rename(path, `${dirname(path)}.html`);
     }

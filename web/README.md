@@ -256,8 +256,11 @@ Verified against the built site:
   is served at exactly the URL its canonical tag points at, with no
   trailing-slash redirect. Routes are listed in `prerender` in
   `react-router.config.ts`; a new page must be added there to get a file.
-- `.github/workflows/deploy.yml` publishes `build/client/` to GitHub Pages on
-  every push to `main` that touches `web/`. Because a project site lives at
+- `.github/workflows/deploy.yml` force-pushes `build/client/` to the `gh-pages`
+  branch on every push to `main` that touches `web/`; Pages must be set to
+  "Deploy from a branch" with `gh-pages` / root. (The `actions/deploy-pages`
+  route needs a Pages API token this repo's runner is not granted.) Because a
+  project site lives at
   `/<repo>/`, CI builds with `BASE_PATH=/<repo>/`; `react-router.config.ts`
   feeds that to both the router `basename` and Vite's `base`, and its
   `buildEnd` hook flattens the output into a Pages-shaped tree. Paths written

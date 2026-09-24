@@ -9,11 +9,10 @@ on:
   # Lets you redeploy the current main from the Actions tab.
   workflow_dispatch:
 
-# Read the repo, mint the OIDC token deploy-pages exchanges for an upload URL.
+# Publishing is a force-push to the gh-pages branch, so plain repo write is all
+# this needs — no Pages API, no OIDC, no github-pages environment.
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 # Never let two deploys race; queue the newer one and let the running one finish.
 concurrency:
@@ -25,7 +24,7 @@ defaults:
     working-directory: web
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -49,20 +48,18 @@ jobs:
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
 
-      # No actions/configure-pages step: it only reads or creates the Pages
-      # site through the API, which the default GITHUB_TOKEN is not allowed to
-      # do. Enable Pages once under Settings > Pages > Source: GitHub Actions
-      # and deploy-pages below handles every run from then on.
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: web/build/client
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      # gh-pages holds only the built site, with no history worth keeping, so
+      # each deploy is a fresh single commit force-pushed over the last one.
+      - name: Publish to gh-pages
+        working-directory: web/build/client
+        run: |
+          git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Deploy ${GITHUB_SHA}"
+          git push -qf \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            HEAD:gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
