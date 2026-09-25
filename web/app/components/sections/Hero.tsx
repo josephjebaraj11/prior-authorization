@@ -42,8 +42,8 @@ export function Hero() {
                 id="hero-title"
                 className="type-display mt-6 text-display-sm sm:text-display-md lg:text-display-lg"
               >
-                Prior authorization,{" "}
-                <span className="text-gradient">handled before your coffee cools.</span>
+                Insurers have algorithms.{" "}
+                <span className="text-gradient">Now you do too.</span>
               </h1>
             </Reveal>
 

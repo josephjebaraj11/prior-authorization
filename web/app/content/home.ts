@@ -58,7 +58,7 @@ export type Faq = {
 
 export const HERO = {
   eyebrow: "AI for prior authorization",
-  title: "Prior authorization, handled before your coffee cools.",
+  title: "Insurers have algorithms. Now you do too.",
   body: "Nexauth AI reads the chart, fills the payer form, submits it, watches for a decision, and writes the evidence-backed appeal when the answer comes back wrong. Your staff reviews and signs off — that's the job now.",
   primaryCta: "Request a Demo",
   secondaryCta: "See how it works",
